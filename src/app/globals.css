@@ -1,0 +1,29 @@
+@import "tailwindcss";
+
+/*
+ * THEME BRIDGE — how per-client theming works, in three steps:
+ *
+ *   1. site.config.ts defines theme.primaryColor / accentColor / fontFamily.
+ *   2. layout.tsx writes those values onto <html> as the CSS variables
+ *      --primary, --accent and --site-font (view-source to see them).
+ *   3. The @theme block below registers them as Tailwind v4 design tokens,
+ *      which generates real utility classes: bg-primary, text-accent,
+ *      border-accent, bg-accent/10, font-sans, and so on.
+ *
+ * Result: restyling for a new client = editing two hex codes and a font
+ * stack in site.config.ts. No CSS file ever needs to change.
+ */
+@theme inline {
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --font-sans: var(--site-font);
+}
+
+/* Smooth scrolling for the in-page anchor links (#menu, #about, #contact). */
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-white font-sans text-neutral-900 antialiased;
+}

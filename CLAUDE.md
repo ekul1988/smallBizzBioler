@@ -1,0 +1,104 @@
+# CLAUDE.md — operational brief
+
+## Overview
+
+Reusable single-page website boilerplate for local businesses (restaurants,
+auto shops, salons, spas). The owner clones this repo per client, edits one
+config file, swaps two images, and deploys free to Cloudflare Pages. It is
+currently seeded with a fictional demo business ("El Camino Taqueria") so it
+builds and looks real out of the box.
+
+## Stack & hard constraints
+
+- Next.js 16.2 (App Router) + TypeScript + Tailwind CSS v4 (no JS Tailwind
+  config — tokens live in `src/app/globals.css` `@theme` block).
+- **HARD CONSTRAINT: this stays a static export.** `output: 'export'` in
+  `next.config.ts`; no server runtime, no API routes, no server actions, no
+  middleware, no DB. Anything dynamic must run client-side or at build time.
+- **HARD CONSTRAINT: zero required credentials.** All env vars are optional;
+  every integration must degrade gracefully when its var is empty.
+
+## The core workflow
+
+All content and theming lives in `src/lib/site.config.ts` (types in
+`src/lib/types.ts`). Components read `siteConfig` directly — no props, no
+hardcoded business content anywhere else. New client = edit that file +
+replace `public/og.png` and `src/app/favicon.ico` + rebuild. Preserve this
+property in any change you make.
+
+## Layout & conventions
+
+- `src/lib/` — site.config.ts (content), types.ts, env.ts (ONLY place env
+  vars are read), format.ts (display helpers: hours, tel:, price parsing).
+- `src/components/` — one file per page section: SpecialsBanner, Hero,
+  ServiceMenu, About, Contact, ContactForm, Footer, JsonLd. All are server
+  components EXCEPT ContactForm (`"use client"`, Web3Forms submit with
+  no-JS `action=` fallback).
+- `src/app/` — layout.tsx (Metadata API + theme CSS-var injection + GA),
+  page.tsx (stacks the components), sitemap.ts, robots.ts, globals.css.
+- Theming: config colors → inline CSS vars on `<html>` (layout.tsx) →
+  `@theme inline` bridge in globals.css → Tailwind utilities
+  (`bg-primary`, `text-accent`). primary must stay dark / accent bright
+  (text contrast contract; accent text is only used on light backgrounds).
+- Code style: beginner-friendly explanatory comments are intentional and
+  should be maintained.
+
+## Commands
+
+```bash
+npm run dev        # dev server, localhost:3000
+npm run build      # static export → out/  (THE verification step)
+npm run preview    # serve the built out/ folder (npx serve out)
+npx eslint .       # lint
+```
+
+Deploy: push to GitHub → Cloudflare Pages (build cmd `npm run build`,
+output dir `out`). Env vars set in the Pages dashboard.
+Git remote: `git@github.com:ekul1988/smallBizzBioler.git` (note: repo name
+has a typo — "Bioler" — that's the real remote name).
+
+## CURRENT STATUS (2026-07-05)
+
+**Done:** everything described above — full page (specials banner, hero,
+menu with highlighted specials, about + hours, contact + form, footer), SEO
+(Metadata API, JSON-LD LocalBusiness with hasMenu/hasOfferCatalog branching
+on businessType, sitemap.xml, robots.txt), optional integrations (Web3Forms,
+GA4, SITE_URL) with verified graceful degradation both ways, docs, green
+`npm run build`, ESLint clean, and a Codex (GPT) code-review pass with all
+findings fixed.
+
+**Intentionally NOT done:**
+- Git-based CMS (Sveltia/Decap) — documented in README only; needs a GitHub
+  OAuth app the owner sets up manually.
+- No photo assets — hero is a brand-gradient by design; `public/og.png` is a
+  generated placeholder gradient.
+- No tests — the page is static presentation; `npm run build` + TypeScript
+  is the safety net.
+- No nav bar, dark mode, i18n, or multi-page routing (single-page scope).
+
+**Sensible next steps a future session might take:** real client
+customization (new site.config.ts); photo/hero-image support as a config
+field; the CMS wiring from the README; a second demo config demonstrating a
+non-restaurant vertical (e.g. AutoRepair) to prove the menu structure
+generalizes.
+
+## GOTCHAS
+
+- **Env vars are baked at BUILD time** (static export). Changing .env or
+  Pages variables does nothing until rebuild. All reads centralized in
+  `src/lib/env.ts` — Next only inlines literal `process.env.NEXT_PUBLIC_*`
+  expressions, so don't refactor them into dynamic lookups.
+- **`sitemap.ts`/`robots.ts` need `export const dynamic = "force-static"`**
+  under `output: 'export'` — the build FAILS without it (Next 16 behavior;
+  online docs claiming otherwise are wrong).
+- **`images: { unoptimized: true }`** — next/image does no resizing here;
+  pre-compress any images you add to /public.
+- **`package.json` name is `smallbizz-boilerplate`**, not the folder name —
+  npm forbids capital letters (folder is `smallBizzBoiler`).
+- **The CMS is documented, not installed.** Don't assume `/admin` exists.
+- The footer © year and sitemap lastModified are build-time values — fine,
+  since content changes always mean a rebuild.
+- `public/og.png` was generated by a script (gradient placeholder);
+  regenerate or replace per client — don't hand-edit binary.
+- JSON-LD is injected with `<` escaped as `<` — keep that if touching
+  JsonLd.tsx (prevents `</script>` breakage from config strings).
